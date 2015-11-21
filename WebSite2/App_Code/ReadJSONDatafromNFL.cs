@@ -35,38 +35,38 @@ public class ReadJSONDatafromNFL
         JObjectHomeAway.Add("homeStats", homeStats);
         JObjectHomeAway.Add("awayStats", awayStats);
         List<String> playerIDKeys = new List<string>();
+        List<NFLPlayer> PlayerList = new List<NFLPlayer>();     //List of made NFL Players
 
         foreach (KeyValuePair<string, string> child in StatsChildren) {
             foreach (KeyValuePair<string, JObject> objName in JObjectHomeAway) {
-                //make something that saves home/away, passed in home and awayteam strings
 
-                JObject jObj = objName.Value;   //passed in from dict, is either the homeStats or awayStats jObject
+                JObject statsJObj = objName.Value;   //passed in from dict, is either the homeStats or awayStats jObject
                 string objPropertyName = objName.Key;
-                JObject getIDs = (JObject)jObj[child.Key];
+                JObject getIDs = (JObject)statsJObj[child.Key];
 
                 playerIDKeys.AddRange(getIDs.Properties().Select(p => p.Name).ToList());
-
-
 
                 foreach (string playerID in playerIDKeys) {
                     /*PsC - Create list of players
                       Get PlayerID of player about to be added
                      Compare to List of players
                      If Found*/
-                    List<NFLPlayer> PlayerList = new List<NFLPlayer>(); //OUT OF LOOP
+                    
                     NFLPlayer NFLFoundPlayer = null;
 
                     //going through the list of already made players and pulling the player if the id's match
                     //if found add stats according to child (pass,rec, rush, etc)
                     //if not found, create player and copy material
                     if (PlayerList.Count() != 0) {
-                        foreach (NFLPlayer listPlayer in PlayerList) {
-                            if (playerID == listPlayer.id) {
-                                NFLFoundPlayer = new NFLPlayer();
-                                NFLFoundPlayer = listPlayer;
-                            }
-                        }
+                       NFLFoundPlayer = PlayerList.Find(x => x.id.Contains(playerID));
 
+
+                        //foreach (NFLPlayer listPlayer in PlayerList) {
+                        //    if (playerID == listPlayer.id) {
+                        //        NFLFoundPlayer = new NFLPlayer();
+                        //        NFLFoundPlayer = listPlayer;
+                        //    }
+                        //}
                     }
 
 
@@ -75,7 +75,7 @@ public class ReadJSONDatafromNFL
                         NFLFoundPlayer = new NFLPlayer();
                         NFLFoundPlayer.id = playerID;
                         //Using homeStats and awayStats as property names., jObj is home or awayStats jObject                  
-                        NFLFoundPlayer.name = jObj["passing"][playerID]["name"].ToString();
+                        NFLFoundPlayer.name = statsJObj[child.Key][playerID]["name"].ToString();
 
                         if (objPropertyName == "homeStats") {
                             NFLFoundPlayer.team = homeTeam;
@@ -86,24 +86,37 @@ public class ReadJSONDatafromNFL
                         else {
                             NFLFoundPlayer.team = "XXX";
                         }
-
-
-
                     }
                     else { }
 
-                    //add in stats
-                    //Drives test = currentDrive.ToObject(typeof(Drives));
+                    //Finds the correct type of stats with the playerId and puts it into a JOnject
+                    var statsPullJSON = statsJObj[child.Key][playerID];
 
-                    var statsPullJSON = jObj[child.Key][playerID];
-                    //Use a case
-                    NFLFoundPlayer.PassingStats = (PassingGameStats)statsPullJSON.ToObject(typeof(PassingGameStats));
+                    //takes pulled stats and adds them to the FoundPlayer
+                    if (child.Key == "passing") {                    
+                        NFLFoundPlayer.PassingStats = (PassingGameStats)statsPullJSON.ToObject(typeof(PassingGameStats));
+                    }
+                    else if (child.Key == "rushing") {
+                        NFLFoundPlayer.RushingStats = (RushingGameStats)statsPullJSON.ToObject(typeof(RushingGameStats));
+                    }
+                    else if (child.Key == "receiving") {
+                        NFLFoundPlayer.ReceivingStats = (ReceivingGameStats)statsPullJSON.ToObject(typeof(ReceivingGameStats));
+                    }
+                    else if (child.Key == "fumbles") {
+                        NFLFoundPlayer.FumbleStats = (FumbleGameStats)statsPullJSON.ToObject(typeof(FumbleGameStats));
+                    }
+                    else if (child.Key == "kicking") {
+                        NFLFoundPlayer.KickingStats = (KickingGameStats)statsPullJSON.ToObject(typeof(KickingGameStats));
+                    }
+                    else { //throw exception
+                    }
 
-                    //categoryStats = jObj[child.Key][playerID][objName.Value].ToObject(typeof(categoryStats));
                     //add in NFLPlayer to Playerlist
                     PlayerList.Add(NFLFoundPlayer);
                     //NFLPlayer NFLPlayer = (Plays)serializer.Deserialize(new JTokenReader(playsInCurrentDrive[key]), typeof(Plays));
+                    
                 }
+                playerIDKeys.Clear();   //empty keys for next iteration
             }
         }
     }
@@ -111,15 +124,18 @@ public class ReadJSONDatafromNFL
     [WebMethod]
 	public void DeserializeData()
 	{
-       //string json = get_web_content("http://localhost:54551/2015101200_gtd.json"); //NFL.com address
+        //string json = get_web_content("http://localhost:54551/2015101200_gtd.json"); //NFL.com address
         //dynamic game = NFLData;
         //dynamic newGame = new JObject();
+        string FileName = "2015101200_gtd.json";
 
         int ID = 2015101200;                //Parse from somewhere, prob web addr call or my schedule database
         string gameID = ID.ToString();      //Needs to be in string for JSON calls.
-        
-        var results = JsonConvert.DeserializeObject<dynamic>(File.ReadAllText(@"C:\Users\Lance\Documents\Visual Studio 2013\WebSites\WebSite2\2015101200_gtd.json"));
-        JObject NFLData = JObject.Parse(File.ReadAllText(@"C:\Users\Lance\Documents\Visual Studio 2013\WebSites\WebSite2\2015101200_gtd.json"));
+
+        string Root = HttpContext.Current.Server.MapPath("~/");
+        string FullPath = Root + FileName;
+        var results = JsonConvert.DeserializeObject<dynamic>(File.ReadAllText(FullPath));
+        JObject NFLData = JObject.Parse(File.ReadAllText(FullPath));
 
         var score = (string)NFLData.SelectToken(gameID + ".home.score.1");
         var homeScore1 = NFLData["2015101200"]["home"]["score"];
