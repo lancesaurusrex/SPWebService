@@ -9,6 +9,7 @@ using System.Web.UI;
 using System.Web.UI.WebControls;
 using System.Net;
 using System.IO;
+using System.Data;
 
 /// <summary>
 /// Summary description for ReadJSONDatafromNFL
@@ -59,14 +60,6 @@ public class ReadJSONDatafromNFL
                     //if not found, create player and copy material
                     if (PlayerList.Count() != 0) {
                        NFLFoundPlayer = PlayerList.Find(x => x.id.Contains(playerID));
-
-
-                        //foreach (NFLPlayer listPlayer in PlayerList) {
-                        //    if (playerID == listPlayer.id) {
-                        //        NFLFoundPlayer = new NFLPlayer();
-                        //        NFLFoundPlayer = listPlayer;
-                        //    }
-                        //}
                     }
 
 
@@ -151,6 +144,18 @@ public class ReadJSONDatafromNFL
         JObject awayStats = results[gameID]["away"]["stats"];
 
         DeserializePlayerStats(homeStats, homeTeam, awayStats, awayTeam);
+
+        string excelFileName = "MARKOVDATA.xlsx";
+        string excelFullPath = Root + excelFileName;
+
+
+        NFLEPMarkov MarkovTable = new NFLEPMarkov();
+        MarkovTable.GetMarkovData(excelFullPath);
+        foreach(var a in MarkovTable.GetMarkovData(excelFullPath))
+        {//replace with add to MarkovList!
+            Console.WriteLine(a); }
+
+        //Dispose of DataTable
 
         //Goes through each drive in gameID
         for (int i = 1; i <= totalDrives; ++i)
