@@ -144,6 +144,7 @@ public class ReadJSONDatafromNFL
         JObject awayStats = results[gameID]["away"]["stats"];
 
         DeserializePlayerStats(homeStats, homeTeam, awayStats, awayTeam);
+        DeserializeTeamStats(homeStats, homeTeam, awayStats, awayTeam);
 
         string excelFileName = "MARKOVDATA.xlsx";
         string excelFullPath = Root + excelFileName;
@@ -203,12 +204,19 @@ public class ReadJSONDatafromNFL
                 }
 
                 //another way to do it, didnt work as well
-                JEnumerable<JToken> playsContainer = results[gameID]["drives"][i.ToString()]["plays"].Children();
+                //JEnumerable<JToken> playsContainer = results[gameID]["drives"][i.ToString()]["plays"].Children();
             }
             else
             { } //ThrowException NOT SUPPOSED TO BE NULL
         }       
 	}
+
+    public void DeserializeTeamStats(JObject homeStats, string homeTeam, JObject awayStats, string awayTeam) {
+        homeStats = (JObject)homeStats["team"];
+        awayStats = (JObject)awayStats["team"];
+        TeamStats homeStatsobj = (TeamStats)homeStats.ToObject(typeof(TeamStats));
+        TeamStats awayStatsobj = (TeamStats)awayStats.ToObject(typeof(TeamStats));
+    }
 
     public string get_web_content(string url)
     {
