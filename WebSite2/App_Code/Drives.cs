@@ -82,6 +82,7 @@ public class Plays
     public string Note { get; set; }
 
     public string EPState { get; set; }
+    public double MarkovExpPts { get; set; }
 
     //The key to players will change on playerID, I don't have the NFL playerID's, so will need a work around
     //[JsonProperty("players")]
@@ -119,6 +120,8 @@ public class Start
 
     [JsonProperty("team")]
     public string Team { get; set; }
+
+    public double expectedPts { get; set; }
 }
 
 public class End
@@ -134,4 +137,6 @@ public class End
 
     [JsonProperty("team")]
     public string Team { get; set; }
+
+    public double expectedPts { get; set; }
 }

@@ -209,7 +209,7 @@ public class ReadJSONDatafromNFL
         return yardNum;
     }
 
-    public string getExpectedPointsForPlay(List<NFLEPMarkov> EPList, int down, int ydsToFirst, int convertedYardsToTD) {
+    public NFLEPMarkov getExpectedPointsForPlay(List<NFLEPMarkov> EPList, int down, int ydsToFirst, int convertedYardsToTD) {
         //need format of MarkovChains List?
         //Source Markov Drive Analysis-Google spreadsheet
         /*Find down
@@ -226,14 +226,15 @@ public class ReadJSONDatafromNFL
             throw new NullReferenceException("findExpectedPoints should not be null");
         }
         //list.Sort((a,b) => a.date.CompareTo(b.date));
-        findExpectedPoints.Sort();
+        findExpectedPoints.Sort( (a,b) => a.YardLine.CompareTo(b.YardLine) );
         NFLEPMarkov findExpectedPointsObj = findExpectedPoints.Last();
 
-        return findExpectedPointsObj.State;
+        return findExpectedPointsObj;
 
     }
 
     public void DeserializeDrives(List<NFLEPMarkov> EPList, int totalDrives, JObject drives) {
+        List<Plays> PlayAnalyzer = new List<Plays>();
         //Goes through each drive in gameID
         for (int i = 1; i <= totalDrives; ++i) {
             //Is the current drive aka 1,2,3,etc.
@@ -262,9 +263,11 @@ public class ReadJSONDatafromNFL
                     Plays play = (Plays)serializer.Deserialize(new JTokenReader(playsInCurrentDrive[key]), typeof(Plays));
                     if (play.Down != 0) {
                         int convertedYardsToTD = convertToIntYardLine(play.Yrdln, play.Posteam);
-                        play.EPState = getExpectedPointsForPlay(EPList, play.Down, play.Ydstogo, convertedYardsToTD); //Down,YardsToGo,YardLine(in 1-99 format)                       
+                        NFLEPMarkov tempMarkov = getExpectedPointsForPlay(EPList, play.Down, play.Ydstogo, convertedYardsToTD); //Down,YardsToGo,YardLine(in 1-99 format)
+                        play.EPState = tempMarkov.State;
+                        play.MarkovExpPts = tempMarkov.Markov;
                     }
-                    else { } //Tpuchbacks have down=0 and ydstogo == 0
+                    else { } //Touchbacks have down=0 and ydstogo == 0
 
                     //getting players from current play
                     JObject playersInCurrentPlay = (JObject)currentDrive["plays"][key]["players"];
@@ -278,12 +281,12 @@ public class ReadJSONDatafromNFL
                         //Putting the current play players into a list
                         IList<Players> PlayersList = serializer.Deserialize<IList<Players>>(new JTokenReader(playersInCurrentPlay[playerKey]));
                     }
+                    PlayAnalyzer.Add(play);
                 }
-
                 //another way to do it, didnt work as well
                 //JEnumerable<JToken> playsContainer = results[gameID]["drives"][i.ToString()]["plays"].Children();
+                //AnalyzeDrivewithPlaysList();  //do start and end here
             }
-            else { } //ThrowException NOT SUPPOSED TO BE NULL
         }
     }
 
