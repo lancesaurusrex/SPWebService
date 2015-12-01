@@ -55,56 +55,6 @@ public class NFLEPMarkov
         };
     }
 
-    //public DataSet ReadExcelFile(string FileName)
-    //{
-    //    DataSet ds = new DataSet();
-
-    //    string connectionString = "Provider=Microsoft.ACE.OLEDB.12.0;Data Source=" + FileName + ";Extended Properties=\"Excel 12.0;HDR=Yes;IMEX=1\"";
-
-    //    using (OleDbConnection conn = new OleDbConnection(connectionString))
-    //    {
-    //        conn.Open();
-    //        OleDbCommand cmd = new OleDbCommand();
-    //        cmd.Connection = conn;
-
-    //        // Get all Sheets in Excel File
-    //        DataTable dtSheet = conn.GetOleDbSchemaTable(OleDbSchemaGuid.Tables, null);
-
-    //        // Loop through all Sheets to get data
-    //        foreach (DataRow dr in dtSheet.Rows)
-    //        {
-    //            string sheetName = dr["TABLE_NAME"].ToString();
-
-    //            if (!sheetName.EndsWith("$"))
-    //                continue;
-
-    //            // Get all rows from the Sheet
-    //            cmd.CommandText = "SELECT * FROM [" + sheetName + "]";
-
-    //            DataTable dt = new DataTable();
-    //            dt.TableName = sheetName;
-
-
-    //            OleDbDataAdapter da = new OleDbDataAdapter(cmd);
-    //            da.Fill(dt);
-
-    //            ds.Tables.Add(dt);
-    //        }
-
-    //        cmd = null;
-    //        conn.Close();
-    //    }
-
-
-
-    //    DataRow dr4 = ds.Tables[0].Rows[1];
-    //    var dffm=dr4["F1"];
-
-    //    var id = ds.Tables[0].Rows[0];
-    //    var id4 = ds.Tables[0].Rows[1];
-    //    var id33 = ds.Tables[0].Rows[2];
-    //    return ds;
-    //}
     public IEnumerable<NFLEPMarkov> GetMarkovData(string FileName)
     {
         string sSheetName = null;

@@ -165,7 +165,7 @@ public class ReadJSONDatafromNFL
         List<NFLEPMarkov> ExpectedPoints = new List<NFLEPMarkov>();
         MarkovTable.GetMarkovData(path);
         foreach (var a in MarkovTable.GetMarkovData(path))
-        {//replace with add to MarkovList!
+        {
             ExpectedPoints.Add(a);
         }
 
@@ -180,7 +180,7 @@ public class ReadJSONDatafromNFL
         TeamStats awayStatsobj = (TeamStats)awayStats.ToObject(typeof(TeamStats));
     }
 
-    public int convertToIntYardLine(string yardLine, string posTeam) {
+    public int convertToIntYardtoTD(string yardLine, string posTeam) {
         string[] seperatedYardLine = yardLine.Split();
         if (seperatedYardLine == null) {
             throw new NullReferenceException("SeperatedYardLine cannot be null");
@@ -225,16 +225,17 @@ public class ReadJSONDatafromNFL
         if (findExpectedPoints == null) {
             throw new NullReferenceException("findExpectedPoints should not be null");
         }
-        //list.Sort((a,b) => a.date.CompareTo(b.date));
+
         findExpectedPoints.Sort( (a,b) => a.YardLine.CompareTo(b.YardLine) );
         NFLEPMarkov findExpectedPointsObj = findExpectedPoints.Last();
 
         return findExpectedPointsObj;
-
     }
 
     public void DeserializeDrives(List<NFLEPMarkov> EPList, int totalDrives, JObject drives) {
         List<Plays> PlayAnalyzer = new List<Plays>();
+        Start sDrive = new Start();
+        End eDrive = new End();
         //Goes through each drive in gameID
         for (int i = 1; i <= totalDrives; ++i) {
             //Is the current drive aka 1,2,3,etc.
@@ -261,15 +262,14 @@ public class ReadJSONDatafromNFL
                 foreach (string key in playsKeys) {
                     //storing the play into play object, need the unique key for each play to read
                     Plays play = (Plays)serializer.Deserialize(new JTokenReader(playsInCurrentDrive[key]), typeof(Plays));
-                    if (play.Down != 0) {
-                        int convertedYardsToTD = convertToIntYardLine(play.Yrdln, play.Posteam);
+
+                    if (play.Down != 0) { //Means Kickoff  edit around that will have to figure out what to do with those
+                        int convertedYardsToTD = convertToIntYardtoTD(play.Yrdln, play.Posteam);
                         NFLEPMarkov tempMarkov = getExpectedPointsForPlay(EPList, play.Down, play.Ydstogo, convertedYardsToTD); //Down,YardsToGo,YardLine(in 1-99 format)
                         play.EPState = tempMarkov.State;
                         play.MarkovExpPts = tempMarkov.Markov;
                     }
-                    else { } //Touchbacks have down=0 and ydstogo == 0
 
-                    //getting players from current play
                     JObject playersInCurrentPlay = (JObject)currentDrive["plays"][key]["players"];
 
                     //Getting the key (semi-unique, it's the playerID) and storing in a list
@@ -281,11 +281,42 @@ public class ReadJSONDatafromNFL
                         //Putting the current play players into a list
                         IList<Players> PlayersList = serializer.Deserialize<IList<Players>>(new JTokenReader(playersInCurrentPlay[playerKey]));
                     }
+                    sDrive = serializer.Deserialize<Start>(new JTokenReader(currentDrive["start"]));
+                    eDrive = serializer.Deserialize<End>(new JTokenReader(currentDrive["end"]));
                     PlayAnalyzer.Add(play);
                 }
                 //another way to do it, didnt work as well
                 //JEnumerable<JToken> playsContainer = results[gameID]["drives"][i.ToString()]["plays"].Children();
-                //AnalyzeDrivewithPlaysList();  //do start and end here
+
+                //Fill in ExpPt Data for start and end drive
+                
+                Plays startPlay = PlayAnalyzer.First();
+                sDrive.expectedPts = startPlay.MarkovExpPts;
+                Plays endPlay = PlayAnalyzer.Last();
+                eDrive.expectedPts = endPlay.MarkovExpPts;
+                if (startPlay == null || endPlay == null) { throw new NullReferenceException("StartPlay or EndPlay is null"); }
+                    AnalyzeDrivePlaysList(PlayAnalyzer, sDrive, eDrive);  //do start and end here
+            }
+        }
+    }
+
+    public void AnalyzeDrivePlaysList(List<Plays> DrivePlays, Start StartDrive, End EndDrive) {
+        List<double> expectedPointsList = new List<double>();
+        List<double> epChangeList = new List<double>();
+
+        foreach (Plays play in DrivePlays)
+        {//get rid of 0 kickoff, can have 0 but will fix later
+            if (play.MarkovExpPts != 0) { 
+                expectedPointsList.Add(play.MarkovExpPts);
+            }
+        }
+
+        for (int i = 0; i < expectedPointsList.Count; ++i) { 
+            if (i != 0)
+            {
+                //vauleNow - ValueLast
+                double epChange = (expectedPointsList[i]) - (expectedPointsList[i - 1]);
+                epChangeList.Add(epChange);
             }
         }
     }
