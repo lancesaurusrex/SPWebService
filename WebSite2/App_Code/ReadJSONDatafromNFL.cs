@@ -181,30 +181,40 @@ public class ReadJSONDatafromNFL
     }
 
     public int convertToIntYardtoTD(string yardLine, string posTeam) {
-        string[] seperatedYardLine = yardLine.Split();
-        if (seperatedYardLine == null) {
-            throw new NullReferenceException("SeperatedYardLine cannot be null");
-        }
+        int yardNum = 0;    //is local var to hold yardLine
 
-        string ballSideOfField = seperatedYardLine[0];
-        int yardNum = Convert.ToInt32(seperatedYardLine[1]);
-
-        if (yardNum < 0 || yardNum > 50) {
-            throw new FormatException("ballSideOfField is null or yardNum is out of Range");
-        }
-
-        /*Trying to figure out if ball is on your side of the field or opponent's convert from teamname yrdline to yrdsfromtd
-        INPUT yardLine-SD 35, posTeam-SD
-        your side of the field is 51-99, opponents is 1-50
-        yourSideOfTheField = true
-         * output is 65, 65 yards from the endzone */
-        if (ballSideOfField == posTeam) {
-            yardNum = 100 - yardNum;
-
-            if (yardNum < 50 ) {
-                throw new FormatException("Ball is on your side of the field, yardsfromTD should be greater than 51");
+            string[] seperatedYardLine = yardLine.Split();
+            if (seperatedYardLine == null)
+            {
+                throw new NullReferenceException("SeperatedYardLine cannot be null");
             }
-        }
+            else if (seperatedYardLine[0] == "50") {    //Special Case, 50 comes in without a team name
+            yardLine = "XXX 50";                        //this wont trigger if ballSideOfField == posteam
+            seperatedYardLine = yardLine.Split();       //should return just 50
+            }
+
+            string ballSideOfField = seperatedYardLine[0];
+            yardNum = Convert.ToInt32(seperatedYardLine[1]);
+
+            if (yardNum < 0 || yardNum > 50)
+            {
+                throw new FormatException("ballSideOfField is null or yardNum is out of Range");
+            }
+
+            /*Trying to figure out if ball is on your side of the field or opponent's convert from teamname yrdline to yrdsfromtd
+            INPUT yardLine-SD 35, posTeam-SD
+            your side of the field is 51-99, opponents is 1-50
+            yourSideOfTheField = true
+             * output is 65, 65 yards from the endzone */
+            if (ballSideOfField == posTeam)
+            {
+                yardNum = 100 - yardNum;
+
+                if (yardNum < 50)
+                {
+                    throw new FormatException("Ball is on your side of the field, yardsfromTD should be greater than 51");
+                }
+            }
 
         return yardNum;
     }
@@ -220,13 +230,23 @@ public class ReadJSONDatafromNFL
          * Take all remaning convertedYardsToTD and put into list and search and find closest
          * */
 
-        List<NFLEPMarkov> findExpectedPoints = EPList.FindAll(x => (x.Down == down) && (x.YardsToGo == ydsToFirst) && (x.YardLine <= convertedYardsToTD));
+        List<NFLEPMarkov> findExpectedPoints = EPList.FindAll(x => (x.Down == down));
+        // && (x.YardsToGo >= ydsToFirst) && (x.YardLine < convertedYardsToTD));
+        findExpectedPoints = EPList.FindAll(x => (x.Down == down)&&(x.YardsToGo <= ydsToFirst));
+        findExpectedPoints.Sort((a, b) => a.YardsToGo.CompareTo(b.YardsToGo));
+        var temp = findExpectedPoints.Last();
+        var YardsGoMarker = temp.YardsToGo;
+        findExpectedPoints = EPList.FindAll(x => (x.Down == down) && (x.YardsToGo == YardsGoMarker) && (x.YardLine <= convertedYardsToTD));
 
-        if (findExpectedPoints == null) {
+        //findExpectedPoints = EPList.FindAll(x => (x.YardsToGo == ydsToFirst));
+        //&& (x.YardsToGo == ydsToFirst) && (x.YardLine <= convertedYardsToTD));
+
+        if (findExpectedPoints.Count == 0) {
             throw new NullReferenceException("findExpectedPoints should not be null");
         }
+        
 
-        findExpectedPoints.Sort( (a,b) => a.YardLine.CompareTo(b.YardLine) );
+        findExpectedPoints.Sort( (a,b) => a.YardLine.CompareTo(b.YardLine) );   //I don't think this is necessary anymore
         NFLEPMarkov findExpectedPointsObj = findExpectedPoints.Last();
 
         return findExpectedPointsObj;
