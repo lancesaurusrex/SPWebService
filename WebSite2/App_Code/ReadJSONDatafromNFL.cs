@@ -136,7 +136,7 @@ public class ReadJSONDatafromNFL
 
         var firstDrive = results[gameID]["drives"]["1"];
         var secDrive = results[gameID]["drives"]["2"];
-        int totalDrives = results[gameID]["drives"]["crntdrv"];     //if game is over crntdrive will be the total # of drives
+        
 
         string homeTeam = results[gameID]["home"]["abbr"];    
         string awayTeam = results[gameID]["away"]["abbr"];     
@@ -149,64 +149,18 @@ public class ReadJSONDatafromNFL
         string excelFileName = "MARKOVDATA.xlsx";
         string excelFullPath = Root + excelFileName;
 
-        NFLEPMarkov MarkovTable = new NFLEPMarkov();
-        MarkovTable.GetMarkovData(excelFullPath);
-        foreach(var a in MarkovTable.GetMarkovData(excelFullPath))
-        {//replace with add to MarkovList!
-            Console.WriteLine(a); }
+        //NFLEPMarkov MarkovTable = new NFLEPMarkov();
+        //MarkovTable.GetMarkovData(excelFullPath);
+        //foreach(var a in MarkovTable.GetMarkovData(excelFullPath))
+        //{//replace with add to MarkovList!
+        //    Console.WriteLine(a); }
 
-        //Goes through each drive in gameID
-        for (int i = 1; i <= totalDrives; ++i)
-        {           
-            //Is the current drive aka 1,2,3,etc.
-            var currentDrive = results[gameID]["drives"][i.ToString()];
 
-            if (currentDrive != null)
-            {
-
-                //Not sure the best way to do this, but the Plays and Players aren't Deserializing correctly.
-                //I could write a custom deserializer or jtokenreader? but not sure how or how long that would take.
-                //Work around is I can parse it "manually", using the results and keys that are different for every game.
-
-                //throw into using, IDisposable?
-                JsonSerializer serializer = new JsonSerializer();
-                //Store currentDrive into Drives object
-                //Drives test = currentDrive.ToObject(typeof(Drives));
-                Drives storeCurrentDrive = (Drives)serializer.Deserialize(new JTokenReader(currentDrive), typeof(Drives));
-
-                //taking the plays out of the currentDrive and storing into JObject
-                JObject playsInCurrentDrive = currentDrive["plays"];
-                //taking the key of each individual play and storing into a list
-                IList<string> playsKeys = playsInCurrentDrive.Properties().Select(p => p.Name).ToList();
-
-                //going through each key of the ind. play and taking out the play, players and storing into objects
-                foreach (string key in playsKeys)
-                {
-                    //storing the play into play object, need the unique key for each play to read
-                    Plays play = (Plays)serializer.Deserialize(new JTokenReader(playsInCurrentDrive[key]), typeof(Plays));
-                    int convertedYardsToTD = convertToIntYardLine(play.Yrdln, play.Posteam);
-                    getExpectedPointsForPlay(play.Down, play.Ydstogo, convertedYardsToTD); //Down,YardsToGo,YardLine(in 1-99 format)
-                    //getting players from current play
-                    JObject playersInCurrentPlay = currentDrive["plays"][key]["players"];
-
-                    //Getting the key (semi-unique, it's the playerID) and storing in a list
-                    IList<string> playersKeys = playersInCurrentPlay.Properties().Select(p => p.Name).ToList();
-                    //Going through each key and storing the players into players list
-                    foreach (string playerKey in playersKeys)
-                    {
-                        //storing the playerID
-                        string playerID = playerKey;
-                        //Putting the current play players into a list
-                        IList<Players> PlayersList = serializer.Deserialize<IList<Players>>(new JTokenReader(playersInCurrentPlay[playerKey]));
-                    }
-                }
-
-                //another way to do it, didnt work as well
-                //JEnumerable<JToken> playsContainer = results[gameID]["drives"][i.ToString()]["plays"].Children();
-            }
-            else
-            { } //ThrowException NOT SUPPOSED TO BE NULL
-        }       
+        int totalDrives = results[gameID]["drives"]["crntdrv"];     //if game is over crntdrive will be the total # of drives
+        JObject drives = results[gameID]["drives"];
+        //function pass in totalDrives, find out what var is 99.9% sure its a JObject
+        serializeDrives(totalDrives, drives);
+        
 	}
 
     //This function takes JObjects and finds the correct path to pull the TeamStatsData and stores in a TeamStates Object
@@ -222,7 +176,7 @@ public class ReadJSONDatafromNFL
         string ballSideOfField = seperatedYardLine[0];
         int yardNum = Convert.ToInt32(seperatedYardLine[1]);
 
-        if (ballSideOfField != null || yardNum < 0 || yardNum > 50) {
+        if (ballSideOfField == null || yardNum < 0 || yardNum > 50) {
             throw new FormatException("ballSideOfField is null or yardNum is out of Range");
         }
 
@@ -245,7 +199,7 @@ public class ReadJSONDatafromNFL
     public void getExpectedPointsForPlay(int down, int ydsToFirst, int convertedYardsToTD) {
         NFLEPMarkov EP = new NFLEPMarkov();
         //need format of MarkovChains List?
-
+        //Source Markov Drive Analysis-Google spreadsheet
         /*Find down
          * Find Yards To Go - (Format - 1,2,3,4,5,6,7,8,9,10,11,16,21)
          * Find convertedYardsToTD 
@@ -261,6 +215,56 @@ public class ReadJSONDatafromNFL
         //AllYardsToTDFound.Find(x => (x.YardLine >= convertedYardsToTD));
         //
 
+    }
+
+    public void serializeDrives(int totalDrives, JObject drives) {
+        //Goes through each drive in gameID
+        for (int i = 1; i <= totalDrives; ++i) {
+            //Is the current drive aka 1,2,3,etc.
+            var currentDrive = (JObject)drives[i.ToString()];
+
+            if (currentDrive != null) {
+
+                //Not sure the best way to do this, but the Plays and Players aren't Deserializing correctly.
+                //I could write a custom deserializer or jtokenreader? but not sure how or how long that would take.
+                //Work around is I can parse it "manually", using the results and keys that are different for every game.
+
+                //throw into using, IDisposable?
+                JsonSerializer serializer = new JsonSerializer();
+                //Store currentDrive into Drives object
+                //Drives test = currentDrive.ToObject(typeof(Drives));
+                Drives storeCurrentDrive = (Drives)serializer.Deserialize(new JTokenReader(currentDrive), typeof(Drives));
+
+                //taking the plays out of the currentDrive and storing into JObject
+                JObject playsInCurrentDrive = (JObject)currentDrive["plays"];
+                //taking the key of each individual play and storing into a list
+                IList<string> playsKeys = playsInCurrentDrive.Properties().Select(p => p.Name).ToList();
+
+                //going through each key of the ind. play and taking out the play, players and storing into objects
+                foreach (string key in playsKeys) {
+                    //storing the play into play object, need the unique key for each play to read
+                    Plays play = (Plays)serializer.Deserialize(new JTokenReader(playsInCurrentDrive[key]), typeof(Plays));
+                    int convertedYardsToTD = convertToIntYardLine(play.Yrdln, play.Posteam);
+                    getExpectedPointsForPlay(play.Down, play.Ydstogo, convertedYardsToTD); //Down,YardsToGo,YardLine(in 1-99 format)
+                    //getting players from current play
+                    JObject playersInCurrentPlay = (JObject)currentDrive["plays"][key]["players"];
+
+                    //Getting the key (semi-unique, it's the playerID) and storing in a list
+                    IList<string> playersKeys = playersInCurrentPlay.Properties().Select(p => p.Name).ToList();
+                    //Going through each key and storing the players into players list
+                    foreach (string playerKey in playersKeys) {
+                        //storing the playerID
+                        string playerID = playerKey;
+                        //Putting the current play players into a list
+                        IList<Players> PlayersList = serializer.Deserialize<IList<Players>>(new JTokenReader(playersInCurrentPlay[playerKey]));
+                    }
+                }
+
+                //another way to do it, didnt work as well
+                //JEnumerable<JToken> playsContainer = results[gameID]["drives"][i.ToString()]["plays"].Children();
+            }
+            else { } //ThrowException NOT SUPPOSED TO BE NULL
+        }
     }
 
     public string get_web_content(string url)
