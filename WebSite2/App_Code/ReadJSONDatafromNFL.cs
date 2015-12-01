@@ -149,7 +149,6 @@ public class ReadJSONDatafromNFL
         string excelFileName = "MARKOVDATA.xlsx";
         string excelFullPath = Root + excelFileName;
 
-
         NFLEPMarkov MarkovTable = new NFLEPMarkov();
         MarkovTable.GetMarkovData(excelFullPath);
         foreach(var a in MarkovTable.GetMarkovData(excelFullPath))
@@ -168,11 +167,10 @@ public class ReadJSONDatafromNFL
                 //Not sure the best way to do this, but the Plays and Players aren't Deserializing correctly.
                 //I could write a custom deserializer or jtokenreader? but not sure how or how long that would take.
                 //Work around is I can parse it "manually", using the results and keys that are different for every game.
-                //http://stackoverflow.com/questions/18994685/how-to-handle-both-a-single-item-and-an-array-for-the-same-property-using-json-n
 
+                //throw into using, IDisposable?
                 JsonSerializer serializer = new JsonSerializer();
                 //Store currentDrive into Drives object
-                //TEST THIS CODE next line with test obj
                 //Drives test = currentDrive.ToObject(typeof(Drives));
                 Drives storeCurrentDrive = (Drives)serializer.Deserialize(new JTokenReader(currentDrive), typeof(Drives));
 
@@ -211,6 +209,7 @@ public class ReadJSONDatafromNFL
         }       
 	}
 
+    //This function takes JObjects and finds the correct path to pull the TeamStatsData and stores in a TeamStates Object
     public void DeserializeTeamStats(JObject homeStats, string homeTeam, JObject awayStats, string awayTeam) {
         homeStats = (JObject)homeStats["team"];
         awayStats = (JObject)awayStats["team"];
