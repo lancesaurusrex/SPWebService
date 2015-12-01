@@ -156,8 +156,6 @@ public class ReadJSONDatafromNFL
         {//replace with add to MarkovList!
             Console.WriteLine(a); }
 
-        //Dispose of DataTable
-
         //Goes through each drive in gameID
         for (int i = 1; i <= totalDrives; ++i)
         {           
@@ -188,6 +186,8 @@ public class ReadJSONDatafromNFL
                 {
                     //storing the play into play object, need the unique key for each play to read
                     Plays play = (Plays)serializer.Deserialize(new JTokenReader(playsInCurrentDrive[key]), typeof(Plays));
+                    int convertedYardsToTD = convertToIntYardLine(play.Yrdln, play.Posteam);
+                    getExpectedPointsForPlay(play.Down, play.Ydstogo, convertedYardsToTD); //Down,YardsToGo,YardLine(in 1-99 format)
                     //getting players from current play
                     JObject playersInCurrentPlay = currentDrive["plays"][key]["players"];
 
@@ -216,6 +216,52 @@ public class ReadJSONDatafromNFL
         awayStats = (JObject)awayStats["team"];
         TeamStats homeStatsobj = (TeamStats)homeStats.ToObject(typeof(TeamStats));
         TeamStats awayStatsobj = (TeamStats)awayStats.ToObject(typeof(TeamStats));
+    }
+
+    public int convertToIntYardLine(string yardLine, string posTeam) {
+        string[] seperatedYardLine = yardLine.Split();
+        string ballSideOfField = seperatedYardLine[0];
+        int yardNum = Convert.ToInt32(seperatedYardLine[1]);
+
+        if (ballSideOfField != null || yardNum < 0 || yardNum > 50) {
+            throw new FormatException("ballSideOfField is null or yardNum is out of Range");
+        }
+
+        /*Trying to figure out if ball is on your side of the field or opponent's convert from teamname yrdline to yrdsfromtd
+        INPUT yardLine-SD 35, posTeam-SD
+        your side of the field is 51-99, opponents is 1-50
+        yourSideOfTheField = true
+         * output is 65, 65 yards from the endzone */
+        if (ballSideOfField == posTeam) {
+            yardNum = 100 - yardNum;
+
+            if (yardNum < 50 ) {
+                throw new FormatException("Ball is on your side of the field, yardsfromTD should be greater than 51");
+            }
+        }
+
+        return yardNum;
+    }
+
+    public void getExpectedPointsForPlay(int down, int ydsToFirst, int convertedYardsToTD) {
+        NFLEPMarkov EP = new NFLEPMarkov();
+        //need format of MarkovChains List?
+
+        /*Find down
+         * Find Yards To Go - (Format - 1,2,3,4,5,6,7,8,9,10,11,16,21)
+         * Find convertedYardsToTD 
+         * 
+         * Code - Find down and yards to go
+         * Take all remaning convertedYardsToTD and put into list and search and find closest
+         * */
+        
+        //var findDownYardToFirst = list.FindAll(x => (x.Down == down) && (x.YardsToGo == ydsToFirst));
+        //IList<double> AllYardsToTDFound = new IList<double();
+        //AllYardsToTDFound = findDownYardToFirst.Properties().Select(p => p.YardLine).ToList();
+
+        //AllYardsToTDFound.Find(x => (x.YardLine >= convertedYardsToTD));
+        //
+
     }
 
     public string get_web_content(string url)

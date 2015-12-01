@@ -146,8 +146,8 @@ public class NFLEPMarkov
 
             //object[] dataFill = new object[17];
 
-            using (var reader = oleExcelReader){ }//will this work?
-            using (var reader = oleExcelCommand.ExecuteReader())
+            using (var reader = oleExcelReader)//will this work?
+            //using (var reader = oleExcelCommand.ExecuteReader())
             {//I think using gets rid of the reader, hopefully.
                 while (reader.Read())
                 {
