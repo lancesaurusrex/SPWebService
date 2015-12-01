@@ -79,7 +79,9 @@ public class Plays
     public string Desc { get; set; }
 
     [JsonProperty("note")]
-    public object Note { get; set; }
+    public string Note { get; set; }
+
+    public string EPState { get; set; }
 
     //The key to players will change on playerID, I don't have the NFL playerID's, so will need a work around
     //[JsonProperty("players")]

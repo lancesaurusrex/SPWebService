@@ -129,14 +129,20 @@ public class ReadJSONDatafromNFL
         string FullPath = Root + FileName;
         var results = JsonConvert.DeserializeObject<dynamic>(File.ReadAllText(FullPath));
         JObject NFLData = JObject.Parse(File.ReadAllText(FullPath));
+        List<NFLEPMarkov> ExpectedPointData = new List<NFLEPMarkov>();
+
+        string excelFileName = "MARKOVDATA.xlsx";
+        string excelFullPath = Root + excelFileName;
+
+        //How to do this better?  Don't pass the List pass a number or something to the list?  make list static?
+        ExpectedPointData = LoadExpectedPointsData(excelFullPath);
 
         var score = (string)NFLData.SelectToken(gameID + ".home.score.1");
         var homeScore1 = NFLData["2015101200"]["home"]["score"];
         var homeScoreres = results[gameID]["home"]["score"];
 
         var firstDrive = results[gameID]["drives"]["1"];
-        var secDrive = results[gameID]["drives"]["2"];
-        
+        var secDrive = results[gameID]["drives"]["2"];       
 
         string homeTeam = results[gameID]["home"]["abbr"];    
         string awayTeam = results[gameID]["away"]["abbr"];     
@@ -146,22 +152,25 @@ public class ReadJSONDatafromNFL
         DeserializePlayerStats(homeStats, homeTeam, awayStats, awayTeam);
         DeserializeTeamStats(homeStats, homeTeam, awayStats, awayTeam);
 
-        string excelFileName = "MARKOVDATA.xlsx";
-        string excelFullPath = Root + excelFileName;
-
-        //NFLEPMarkov MarkovTable = new NFLEPMarkov();
-        //MarkovTable.GetMarkovData(excelFullPath);
-        //foreach(var a in MarkovTable.GetMarkovData(excelFullPath))
-        //{//replace with add to MarkovList!
-        //    Console.WriteLine(a); }
-
-
         int totalDrives = results[gameID]["drives"]["crntdrv"];     //if game is over crntdrive will be the total # of drives
         JObject drives = results[gameID]["drives"];
-        //function pass in totalDrives, find out what var is 99.9% sure its a JObject
-        serializeDrives(totalDrives, drives);
+
+        DeserializeDrives(ExpectedPointData, totalDrives, drives);
         
 	}
+
+    //Quick change don't need the whole table just the states, that's how I'll link them.
+    public List<NFLEPMarkov> LoadExpectedPointsData(string path) {
+        NFLEPMarkov MarkovTable = new NFLEPMarkov();
+        List<NFLEPMarkov> ExpectedPoints = new List<NFLEPMarkov>();
+        MarkovTable.GetMarkovData(path);
+        foreach (var a in MarkovTable.GetMarkovData(path))
+        {//replace with add to MarkovList!
+            ExpectedPoints.Add(a);
+        }
+
+        return ExpectedPoints;
+    }
 
     //This function takes JObjects and finds the correct path to pull the TeamStatsData and stores in a TeamStates Object
     public void DeserializeTeamStats(JObject homeStats, string homeTeam, JObject awayStats, string awayTeam) {
@@ -173,10 +182,14 @@ public class ReadJSONDatafromNFL
 
     public int convertToIntYardLine(string yardLine, string posTeam) {
         string[] seperatedYardLine = yardLine.Split();
+        if (seperatedYardLine == null) {
+            throw new NullReferenceException("SeperatedYardLine cannot be null");
+        }
+
         string ballSideOfField = seperatedYardLine[0];
         int yardNum = Convert.ToInt32(seperatedYardLine[1]);
 
-        if (ballSideOfField == null || yardNum < 0 || yardNum > 50) {
+        if (yardNum < 0 || yardNum > 50) {
             throw new FormatException("ballSideOfField is null or yardNum is out of Range");
         }
 
@@ -196,8 +209,7 @@ public class ReadJSONDatafromNFL
         return yardNum;
     }
 
-    public void getExpectedPointsForPlay(int down, int ydsToFirst, int convertedYardsToTD) {
-        NFLEPMarkov EP = new NFLEPMarkov();
+    public string getExpectedPointsForPlay(List<NFLEPMarkov> EPList, int down, int ydsToFirst, int convertedYardsToTD) {
         //need format of MarkovChains List?
         //Source Markov Drive Analysis-Google spreadsheet
         /*Find down
@@ -207,17 +219,21 @@ public class ReadJSONDatafromNFL
          * Code - Find down and yards to go
          * Take all remaning convertedYardsToTD and put into list and search and find closest
          * */
-        
-        //var findDownYardToFirst = list.FindAll(x => (x.Down == down) && (x.YardsToGo == ydsToFirst));
-        //IList<double> AllYardsToTDFound = new IList<double();
-        //AllYardsToTDFound = findDownYardToFirst.Properties().Select(p => p.YardLine).ToList();
 
-        //AllYardsToTDFound.Find(x => (x.YardLine >= convertedYardsToTD));
-        //
+        List<NFLEPMarkov> findExpectedPoints = EPList.FindAll(x => (x.Down == down) && (x.YardsToGo == ydsToFirst) && (x.YardLine <= convertedYardsToTD));
+
+        if (findExpectedPoints == null) {
+            throw new NullReferenceException("findExpectedPoints should not be null");
+        }
+        //list.Sort((a,b) => a.date.CompareTo(b.date));
+        findExpectedPoints.Sort();
+        NFLEPMarkov findExpectedPointsObj = findExpectedPoints.Last();
+
+        return findExpectedPointsObj.State;
 
     }
 
-    public void serializeDrives(int totalDrives, JObject drives) {
+    public void DeserializeDrives(List<NFLEPMarkov> EPList, int totalDrives, JObject drives) {
         //Goes through each drive in gameID
         for (int i = 1; i <= totalDrives; ++i) {
             //Is the current drive aka 1,2,3,etc.
@@ -244,8 +260,12 @@ public class ReadJSONDatafromNFL
                 foreach (string key in playsKeys) {
                     //storing the play into play object, need the unique key for each play to read
                     Plays play = (Plays)serializer.Deserialize(new JTokenReader(playsInCurrentDrive[key]), typeof(Plays));
-                    int convertedYardsToTD = convertToIntYardLine(play.Yrdln, play.Posteam);
-                    getExpectedPointsForPlay(play.Down, play.Ydstogo, convertedYardsToTD); //Down,YardsToGo,YardLine(in 1-99 format)
+                    if (play.Down != 0) {
+                        int convertedYardsToTD = convertToIntYardLine(play.Yrdln, play.Posteam);
+                        play.EPState = getExpectedPointsForPlay(EPList, play.Down, play.Ydstogo, convertedYardsToTD); //Down,YardsToGo,YardLine(in 1-99 format)                       
+                    }
+                    else { } //Tpuchbacks have down=0 and ydstogo == 0
+
                     //getting players from current play
                     JObject playersInCurrentPlay = (JObject)currentDrive["plays"][key]["players"];
 

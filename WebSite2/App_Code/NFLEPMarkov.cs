@@ -134,7 +134,7 @@ public class NFLEPMarkov
             oleExcelCommand = oleExcelConnection.CreateCommand();
             oleExcelCommand.CommandText = "Select * From [" + sSheetName + "]";
             oleExcelCommand.CommandType = CommandType.Text;
-            //oleExcelReader = oleExcelCommand.ExecuteReader();
+            oleExcelReader = oleExcelCommand.ExecuteReader();
 
             //nOutputRow = 0;
             //var sheets = oleExcelConnection.GetOleDbSchemaTable(System.Data.OleDb.OleDbSchemaGuid.Tables, new object[] { null, null, null, "TABLE" });
@@ -146,22 +146,13 @@ public class NFLEPMarkov
 
             //object[] dataFill = new object[17];
 
-            using (var reader = oleExcelReader)//will this work?
+            using (var reader = oleExcelReader) { //will this work?
             //using (var reader = oleExcelCommand.ExecuteReader())
-            {//I think using gets rid of the reader, hopefully.
-                while (reader.Read())
-                {
+            //I think using gets rid of the reader, hopefully.
+                while (reader.Read()) {
                      yield return NFLEPMarkov.Create(reader);
                 }
             }
-            //while (oleExcelReader.Read())
-            //{
-                
-            //}
-
-            
-
-
         }
         oleExcelConnection.Close();
     }
