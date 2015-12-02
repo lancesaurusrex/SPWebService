@@ -1,4 +1,7 @@
-﻿public bool NewUser(string name, int age)
+﻿https://msdn.microsoft.com/en-us/library/ms233763.aspx
+
+
+public bool NewUser(string name, int age)
 {
     // First let's create the using statement:
     // The using statement will make sure your objects will be disposed after
