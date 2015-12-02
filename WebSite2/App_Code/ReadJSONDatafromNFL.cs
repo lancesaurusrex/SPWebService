@@ -106,8 +106,7 @@ public class ReadJSONDatafromNFL
 
                     //add in NFLPlayer to Playerlist
                     PlayerList.Add(NFLFoundPlayer);
-                    //NFLPlayer NFLPlayer = (Plays)serializer.Deserialize(new JTokenReader(playsInCurrentDrive[key]), typeof(Plays));
-                    
+                    //NFLPlayer NFLPlayer = (Plays)serializer.Deserialize(new JTokenReader(playsInCurrentDrive[key]), typeof(Plays));                   
                 }
                 playerIDKeys.Clear();   //empty keys for next iteration
             }
@@ -196,8 +195,7 @@ public class ReadJSONDatafromNFL
             string ballSideOfField = seperatedYardLine[0];
             yardNum = Convert.ToInt32(seperatedYardLine[1]);
 
-            if (yardNum < 0 || yardNum > 50)
-            {
+            if (yardNum < 0 || yardNum > 50) { 
                 throw new FormatException("ballSideOfField is null or yardNum is out of Range");
             }
 
@@ -206,8 +204,7 @@ public class ReadJSONDatafromNFL
             your side of the field is 51-99, opponents is 1-50
             yourSideOfTheField = true
              * output is 65, 65 yards from the endzone */
-            if (ballSideOfField == posTeam)
-            {
+            if (ballSideOfField == posTeam) {
                 yardNum = 100 - yardNum;
 
                 if (yardNum < 50)
@@ -230,9 +227,9 @@ public class ReadJSONDatafromNFL
          * Take all remaning convertedYardsToTD and put into list and search and find closest
          * */
 
-        List<NFLEPMarkov> findExpectedPoints = EPList.FindAll(x => (x.Down == down));
+        //List<NFLEPMarkov> findExpectedPoints = EPList.FindAll(x => (x.Down == down));
         // && (x.YardsToGo >= ydsToFirst) && (x.YardLine < convertedYardsToTD));
-        findExpectedPoints = EPList.FindAll(x => (x.Down == down)&&(x.YardsToGo <= ydsToFirst));
+        List<NFLEPMarkov> findExpectedPoints = EPList.FindAll(x => (x.Down == down)&&(x.YardsToGo <= ydsToFirst));
         findExpectedPoints.Sort((a, b) => a.YardsToGo.CompareTo(b.YardsToGo));
         var temp = findExpectedPoints.Last();
         var YardsGoMarker = temp.YardsToGo;
@@ -242,7 +239,7 @@ public class ReadJSONDatafromNFL
         //&& (x.YardsToGo == ydsToFirst) && (x.YardLine <= convertedYardsToTD));
 
         if (findExpectedPoints.Count == 0) {
-            throw new NullReferenceException("findExpectedPoints should not be null");
+            throw new NullReferenceException("findExpectedPoints should not be empty");
         }
         
 
